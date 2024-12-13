@@ -108,12 +108,12 @@ class ModuleWrapper:
         self.jit_module = jit_module
 
     def forward(
-        self,
-        crop_size: int,
-        *,
-        return_on_cpu=False,
-        move_to_device: torch.device | None = None,
-        **kw,
+            self,
+            crop_size: int,
+            *,
+            return_on_cpu=False,
+            move_to_device: torch.device | None = None,
+            **kw,
     ):
         f = getattr(self.jit_module, f"forward_{crop_size}")
         if move_to_device is not None:
@@ -213,6 +213,7 @@ feature_generators = dict(
 )
 feature_factory = FeatureFactory(feature_generators)
 
+
 # %%
 # Config
 
@@ -297,18 +298,18 @@ class StructureCandidates:
 
 
 def make_all_atom_feature_context(
-    fasta_file: Path,
-    *,
-    output_dir: Path,
-    use_esm_embeddings: bool = True,
-    use_msa_server: bool = False,
-    msa_server_url: str = "https://api.colabfold.com",
-    msa_directory: Path | None = None,
-    constraint_path: Path | None = None,
-    esm_device: torch.device = torch.device("cpu"),
+        fasta_file: Path,
+        *,
+        output_dir: Path,
+        use_esm_embeddings: bool = True,
+        use_msa_server: bool = False,
+        msa_server_url: str = "https://api.colabfold.com",
+        msa_directory: Path | None = None,
+        constraint_path: Path | None = None,
+        esm_device: torch.device = torch.device("cpu"),
 ):
     assert not (
-        use_msa_server and msa_directory
+            use_msa_server and msa_directory
     ), "Cannot specify both MSA server and directory"
 
     # Prepare inputs
@@ -363,7 +364,7 @@ def make_all_atom_feature_context(
         )
 
     assert (
-        msa_context.num_tokens == merged_context.num_tokens
+            msa_context.num_tokens == merged_context.num_tokens
     ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"
 
     # Load templates
@@ -407,9 +408,9 @@ def make_all_atom_feature_context(
                     torch.concatenate([orig_b, cov_b]),
                 )
             assert (
-                merged_context.atom_covalent_bond_indices[0].numel()
-                == merged_context.atom_covalent_bond_indices[1].numel()
-                > 0
+                    merged_context.atom_covalent_bond_indices[0].numel()
+                    == merged_context.atom_covalent_bond_indices[1].numel()
+                    > 0
             )
     else:
         restraint_context = RestraintContext.empty()
@@ -432,20 +433,20 @@ def make_all_atom_feature_context(
 
 @torch.no_grad()
 def run_inference(
-    fasta_file: Path,
-    *,
-    output_dir: Path,
-    use_esm_embeddings: bool = True,
-    use_msa_server: bool = False,
-    msa_server_url: str = "https://api.colabfold.com",
-    msa_directory: Path | None = None,
-    constraint_path: Path | None = None,
-    # expose some params for easy tweaking
-    num_trunk_recycles: int = 3,
-    num_diffn_timesteps: int = 200,
-    seed: int | None = None,
-    device: str | None = None,
-    low_memory: bool = True,
+        fasta_file: Path,
+        *,
+        output_dir: Path,
+        use_esm_embeddings: bool = True,
+        use_msa_server: bool = False,
+        msa_server_url: str = "https://api.colabfold.com",
+        msa_directory: Path | None = None,
+        constraint_path: Path | None = None,
+        # expose some params for easy tweaking
+        num_trunk_recycles: int = 3,
+        num_diffn_timesteps: int = 200,
+        seed: int | None = None,
+        device: str | None = None,
+        low_memory: bool = True,
 ) -> StructureCandidates:
     if output_dir.exists():
         assert not any(
@@ -465,7 +466,7 @@ def run_inference(
         esm_device=torch_device,
     )
 
-    return run_folding_on_context(
+    atom_pos = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -475,6 +476,26 @@ def run_inference(
         low_memory=low_memory,
     )
 
+    feature_context = make_all_atom_feature_context(
+        fasta_file=fasta_file,
+        output_dir=output_dir,
+        use_esm_embeddings=use_esm_embeddings,
+        use_msa_server=use_msa_server,
+        msa_server_url=msa_server_url,
+        msa_directory=msa_directory,
+        constraint_path=None,
+        esm_device=torch_device,
+    )
+
+    return score(feature_context,
+                 atom_pos,
+                 output_dir=output_dir,
+                 num_trunk_recycles=num_trunk_recycles,
+                 num_diffn_timesteps=num_diffn_timesteps,
+                 seed=seed,
+                 device=torch_device,
+                 low_memory=low_memory, )
+
 
 def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
     return torch.linspace(min_bin, max_bin, 2 * no_bins + 1)[1::2]
@@ -482,15 +503,15 @@ def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
 
 @torch.no_grad()
 def run_folding_on_context(
-    feature_context: AllAtomFeatureContext,
-    *,
-    output_dir: Path,
-    # expose some params for easy tweaking
-    num_trunk_recycles: int = 3,
-    num_diffn_timesteps: int = 200,
-    seed: int | None = None,
-    device: torch.device | None = None,
-    low_memory: bool,
+        feature_context: AllAtomFeatureContext,
+        *,
+        output_dir: Path,
+        # expose some params for easy tweaking
+        num_trunk_recycles: int = 3,
+        num_diffn_timesteps: int = 200,
+        seed: int | None = None,
+        device: torch.device | None = None,
+        low_memory: bool,
 ) -> StructureCandidates:
     """
     Function for in-depth explorations.
@@ -715,7 +736,7 @@ def run_folding_on_context(
     )
 
     for sigma_curr, sigma_next, gamma_curr in tqdm(
-        sigmas_and_gammas, desc="Diffusion steps"
+            sigmas_and_gammas, desc="Diffusion steps"
     ):
         # Center coords
         atom_pos = center_random_augmentation(
@@ -732,7 +753,7 @@ def run_folding_on_context(
             atom_pos.shape, device=atom_pos.device
         )
         sigma_hat = sigma_curr + gamma_curr * sigma_curr
-        atom_pos_noise = (sigma_hat**2 - sigma_curr**2).clamp_min(1e-6).sqrt()
+        atom_pos_noise = (sigma_hat ** 2 - sigma_curr ** 2).clamp_min(1e-6).sqrt()
         atom_pos_hat = atom_pos + noise * atom_pos_noise
 
         # Lines 7-8
@@ -770,7 +791,7 @@ def run_folding_on_context(
             token_pair_trunk_repr=token_pair_trunk_repr,
             token_single_mask=token_single_mask,
             atom_single_mask=atom_single_mask,
-            atom_coords=atom_pos[s : s + 1],
+            atom_coords=atom_pos[s: s + 1],
             token_reference_atom_index=token_reference_atom_index,
             atom_token_index=atom_token_indices,
             atom_within_token_index=atom_within_token_index,
@@ -788,7 +809,7 @@ def run_folding_on_context(
     assert pae_logits.shape[0] == num_diffn_samples
 
     def softmax_einsum_and_cpu(
-        logits: Tensor, bin_mean: Tensor, pattern: str
+            logits: Tensor, bin_mean: Tensor, pattern: str
     ) -> Tensor:
         # utility to compute score from bin logits
         res = einsum(
@@ -857,7 +878,7 @@ def run_folding_on_context(
         ##
 
         _, valid_frames_mask = get_frames_and_mask(
-            atom_pos[idx : idx + 1],
+            atom_pos[idx: idx + 1],
             inputs["token_asym_id"],
             inputs["token_residue_index"],
             inputs["token_backbone_frame_mask"],
@@ -869,18 +890,18 @@ def run_folding_on_context(
         )
 
         ranking_outputs = rank(
-            atom_pos[idx : idx + 1],
+            atom_pos[idx: idx + 1],
             atom_mask=inputs["atom_exists_mask"],
             atom_token_index=inputs["atom_token_index"],
             token_exists_mask=inputs["token_exists_mask"],
             token_asym_id=inputs["token_asym_id"],
             token_entity_type=inputs["token_entity_type"],
             token_valid_frames_mask=valid_frames_mask,
-            lddt_logits=plddt_logits[idx : idx + 1],
+            lddt_logits=plddt_logits[idx: idx + 1],
             lddt_bin_centers=_bin_centers(0, 1, plddt_logits.shape[-1]).to(
                 plddt_logits.device
             ),
-            pae_logits=pae_logits[idx : idx + 1],
+            pae_logits=pae_logits[idx: idx + 1],
             pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
         )
 
@@ -895,10 +916,353 @@ def run_folding_on_context(
         print(f"Score={aggregate_score:.4f}, writing output to {cif_out_path}")
 
         # use 0-100 scale for pLDDT in pdb outputs
-        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
+        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx: idx + 1]
 
         save_to_cif(
-            coords=atom_pos[idx : idx + 1],
+            coords=atom_pos[idx: idx + 1],
+            bfactors=scaled_plddt_scores_per_atom,
+            output_batch=inputs,
+            write_path=cif_out_path,
+            asym_entity_names={
+                i: c.entity_data.entity_name
+                for i, c in enumerate(feature_context.chains, start=1)
+            },
+        )
+        cif_paths.append(cif_out_path)
+
+        scores_out_path = output_dir.joinpath(f"scores.model_idx_{idx}.npz")
+
+        np.savez(scores_out_path, **get_scores(ranking_outputs))
+
+    # return StructureCandidates(
+    #     cif_paths=cif_paths,
+    #     ranking_data=ranking_data,
+    #     msa_coverage_plot_path=msa_plot_path,
+    #     pae=pae_scores,
+    #     pde=pde_scores,
+    #     plddt=plddt_scores,
+    # )
+    return atom_pos
+
+
+@torch.no_grad()
+def score(
+        feature_context: AllAtomFeatureContext,
+        atom_pos: Float[Tensor, "b a 3"],
+        *,
+        output_dir: Path,
+        # expose some params for easy tweaking
+        num_trunk_recycles: int = 3,
+        num_diffn_timesteps: int = 200,
+        seed: int | None = None,
+        device: torch.device | None = None,
+        low_memory: bool,
+) -> StructureCandidates:
+    """
+    Function for in-depth explorations.
+    User completely controls folding inputs.
+    """
+    # Set seed
+    if seed is not None:
+        set_seed([seed])
+
+    if device is None:
+        device = torch.device("cuda:0")
+
+    # Clear memory
+    torch.cuda.empty_cache()
+
+    ##
+    ## Validate inputs
+    ##
+
+    n_actual_tokens = feature_context.structure_context.num_tokens
+    raise_if_too_many_tokens(n_actual_tokens)
+    raise_if_too_many_templates(feature_context.template_context.num_templates)
+    raise_if_msa_too_deep(feature_context.msa_context.depth)
+    # NOTE profile MSA used only for statistics; no depth check
+    feature_context.structure_context.report_bonds()
+
+    ##
+    ## Prepare batch
+    ##
+
+    # Collate inputs into batch
+    collator = Collate(
+        feature_factory=feature_factory,
+        num_key_atoms=128,
+        num_query_atoms=32,
+    )
+
+    feature_contexts = [feature_context]
+    batch_size = len(feature_contexts)
+    batch = collator(feature_contexts)
+
+    if not low_memory:
+        batch = move_data_to_device(batch, device=device)
+
+    # Get features and inputs from batch
+    features = {name: feature for name, feature in batch["features"].items()}
+    inputs = batch["inputs"]
+    block_indices_h = inputs["block_atom_pair_q_idces"]
+    block_indices_w = inputs["block_atom_pair_kv_idces"]
+    atom_single_mask = inputs["atom_exists_mask"]
+    atom_token_indices = inputs["atom_token_index"].long()
+    token_single_mask = inputs["token_exists_mask"]
+    token_pair_mask = und_self(token_single_mask, "b i, b j -> b i j")
+    token_reference_atom_index = inputs["token_ref_atom_index"]
+    atom_within_token_index = inputs["atom_within_token_index"]
+    msa_mask = inputs["msa_mask"]
+    template_input_masks = und_self(
+        inputs["template_mask"], "b t n1, b t n2 -> b t n1 n2"
+    )
+    block_atom_pair_mask = inputs["block_atom_pair_mask"]
+
+    ##
+    ## Load exported models
+    ##
+
+    _, _, model_size = msa_mask.shape
+    assert model_size in AVAILABLE_MODEL_SIZES
+
+    feature_embedding = load_exported("feature_embedding.pt", device)
+    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
+    token_input_embedder = load_exported("token_embedder.pt", device)
+    trunk = load_exported("trunk.pt", device)
+    diffusion_module = load_exported("diffusion_module.pt", device)
+    confidence_head = load_exported("confidence_head.pt", device)
+
+    ##
+    ## Run the features through the feature embedder
+    ##
+
+    embedded_features = feature_embedding.forward(
+        crop_size=model_size,
+        move_to_device=device,
+        return_on_cpu=low_memory,
+        **features,
+    )
+    token_single_input_feats = embedded_features["TOKEN"]
+    token_pair_input_feats, token_pair_structure_input_feats = embedded_features[
+        "TOKEN_PAIR"
+    ].chunk(2, dim=-1)
+    atom_single_input_feats, atom_single_structure_input_feats = embedded_features[
+        "ATOM"
+    ].chunk(2, dim=-1)
+    block_atom_pair_input_feats, block_atom_pair_structure_input_feats = (
+        embedded_features["ATOM_PAIR"].chunk(2, dim=-1)
+    )
+    template_input_feats = embedded_features["TEMPLATES"]
+    msa_input_feats = embedded_features["MSA"]
+
+    ##
+    ## Bond feature generator
+    ## Separate from other feature embeddings due to export limitations
+    ##
+
+    bond_ft_gen = TokenBondRestraint()
+    bond_ft = bond_ft_gen.generate(batch=batch).data
+    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+        return_on_cpu=low_memory,
+        move_to_device=device,
+        crop_size=model_size,
+        input=bond_ft,
+    ).chunk(2, dim=-1)
+    token_pair_input_feats += trunk_bond_feat
+    token_pair_structure_input_feats += structure_bond_feat
+
+    ##
+    ## Run the inputs through the token input embedder
+    ##
+
+    token_input_embedder_outputs: tuple[Tensor, ...] = token_input_embedder.forward(
+        return_on_cpu=low_memory,
+        move_to_device=device,
+        token_single_input_feats=token_single_input_feats,
+        token_pair_input_feats=token_pair_input_feats,
+        atom_single_input_feats=atom_single_input_feats,
+        block_atom_pair_feat=block_atom_pair_input_feats,
+        block_atom_pair_mask=block_atom_pair_mask,
+        block_indices_h=block_indices_h,
+        block_indices_w=block_indices_w,
+        atom_single_mask=atom_single_mask,
+        atom_token_indices=atom_token_indices,
+        crop_size=model_size,
+    )
+    token_single_initial_repr, token_single_structure_input, token_pair_initial_repr = (
+        token_input_embedder_outputs
+    )
+
+    ##
+    ## Run the input representations through the trunk
+    ##
+
+    # Recycle the representations by feeding the output back into the trunk as input for
+    # the subsequent recycle
+    token_single_trunk_repr = token_single_initial_repr
+    token_pair_trunk_repr = token_pair_initial_repr
+    for _ in tqdm(range(num_trunk_recycles), desc="Trunk recycles"):
+        (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
+            move_to_device=device,
+            token_single_trunk_initial_repr=token_single_initial_repr,
+            token_pair_trunk_initial_repr=token_pair_initial_repr,
+            token_single_trunk_repr=token_single_trunk_repr,  # recycled
+            token_pair_trunk_repr=token_pair_trunk_repr,  # recycled
+            msa_input_feats=msa_input_feats,
+            msa_mask=msa_mask,
+            template_input_feats=template_input_feats,
+            template_input_masks=template_input_masks,
+            token_single_mask=token_single_mask,
+            token_pair_mask=token_pair_mask,
+            crop_size=model_size,
+        )
+    # We won't be using the trunk anymore; remove it from memory
+    del trunk
+    torch.cuda.empty_cache()
+
+    ##
+    ## Run the confidence model
+    ##
+
+    num_diffn_samples = 5  # Fixed at export time
+
+    confidence_outputs: list[tuple[Tensor, ...]] = [
+        confidence_head.forward(
+            move_to_device=device,
+            token_single_input_repr=token_single_initial_repr,
+            token_single_trunk_repr=token_single_trunk_repr,
+            token_pair_trunk_repr=token_pair_trunk_repr,
+            token_single_mask=token_single_mask,
+            atom_single_mask=atom_single_mask,
+            atom_coords=atom_pos[s: s + 1],
+            token_reference_atom_index=token_reference_atom_index,
+            atom_token_index=atom_token_indices,
+            atom_within_token_index=atom_within_token_index,
+            crop_size=model_size,
+        )
+        for s in range(num_diffn_samples)
+    ]
+
+    pae_logits, pde_logits, plddt_logits = [
+        torch.cat(single_sample, dim=0)
+        for single_sample in zip(*confidence_outputs, strict=True)
+    ]
+
+    assert atom_pos.shape[0] == num_diffn_samples
+    assert pae_logits.shape[0] == num_diffn_samples
+
+    def softmax_einsum_and_cpu(
+            logits: Tensor, bin_mean: Tensor, pattern: str
+    ) -> Tensor:
+        # utility to compute score from bin logits
+        res = einsum(
+            logits.float().softmax(dim=-1), bin_mean.to(logits.device), pattern
+        )
+        return res.to(device="cpu")
+
+    token_mask_1d = rearrange(token_single_mask, "1 b -> b")
+
+    pae_scores = softmax_einsum_and_cpu(
+        pae_logits[:, token_mask_1d, :, :][:, :, token_mask_1d, :],
+        _bin_centers(0.0, 32.0, 64),
+        "b n1 n2 d, d -> b n1 n2",
+    )
+
+    pde_scores = softmax_einsum_and_cpu(
+        pde_logits[:, token_mask_1d, :, :][:, :, token_mask_1d, :],
+        _bin_centers(0.0, 32.0, 64),
+        "b n1 n2 d, d -> b n1 n2",
+    )
+
+    plddt_scores_atom = softmax_einsum_and_cpu(
+        plddt_logits,
+        _bin_centers(0, 1, plddt_logits.shape[-1]),
+        "b a d, d -> b a",
+    )
+
+    # converting per-atom plddt to per-token
+    [mask] = atom_single_mask.cpu()
+    [indices] = atom_token_indices.cpu()
+
+    def avg_per_token_1d(x):
+        n = torch.bincount(indices[mask], weights=x[mask])
+        d = torch.bincount(indices[mask]).clamp(min=1)
+        return n / d
+
+    plddt_scores = torch.stack([avg_per_token_1d(x) for x in plddt_scores_atom])
+
+    ##
+    ## Write the outputs
+    ##
+    # Move data to the CPU so we don't hit GPU memory limits
+    inputs = move_data_to_device(inputs, torch.device("cpu"))
+    atom_pos = atom_pos.cpu()
+    plddt_logits = plddt_logits.cpu()
+    pae_logits = pae_logits.cpu()
+
+    # Plot coverage of tokens by MSA, save plot
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if feature_context.msa_context.mask.any():
+        msa_plot_path = plot_msa(
+            input_tokens=feature_context.structure_context.token_residue_type,
+            msa_tokens=feature_context.msa_context.tokens,
+            out_fname=output_dir / "msa_depth.pdf",
+        )
+    else:
+        msa_plot_path = None
+
+    cif_paths: list[Path] = []
+    ranking_data: list[SampleRanking] = []
+
+    for idx in range(num_diffn_samples):
+        ##
+        ## Compute ranking scores
+        ##
+
+        _, valid_frames_mask = get_frames_and_mask(
+            atom_pos[idx: idx + 1],
+            inputs["token_asym_id"],
+            inputs["token_residue_index"],
+            inputs["token_backbone_frame_mask"],
+            inputs["token_centre_atom_index"],
+            inputs["token_exists_mask"],
+            inputs["atom_exists_mask"],
+            inputs["token_backbone_frame_index"],
+            inputs["atom_token_index"],
+        )
+
+        ranking_outputs = rank(
+            atom_pos[idx: idx + 1],
+            atom_mask=inputs["atom_exists_mask"],
+            atom_token_index=inputs["atom_token_index"],
+            token_exists_mask=inputs["token_exists_mask"],
+            token_asym_id=inputs["token_asym_id"],
+            token_entity_type=inputs["token_entity_type"],
+            token_valid_frames_mask=valid_frames_mask,
+            lddt_logits=plddt_logits[idx: idx + 1],
+            lddt_bin_centers=_bin_centers(0, 1, plddt_logits.shape[-1]).to(
+                plddt_logits.device
+            ),
+            pae_logits=pae_logits[idx: idx + 1],
+            pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
+        )
+
+        ranking_data.append(ranking_outputs)
+
+        ##
+        ## Write output files
+        ##
+
+        cif_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.cif")
+        aggregate_score = ranking_outputs.aggregate_score.item()
+        print(f"Score={aggregate_score:.4f}, writing output to {cif_out_path}")
+
+        # use 0-100 scale for pLDDT in pdb outputs
+        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx: idx + 1]
+
+        save_to_cif(
+            coords=atom_pos[idx: idx + 1],
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
             write_path=cif_out_path,
