@@ -857,26 +857,7 @@ def run_folding_on_context(
     plddt_logits = plddt_logits.cpu()
     pae_logits = pae_logits.cpu()
 
-    # Plot coverage of tokens by MSA, save plot
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if feature_context.msa_context.mask.any():
-        msa_plot_path = plot_msa(
-            input_tokens=feature_context.structure_context.token_residue_type,
-            msa_tokens=feature_context.msa_context.tokens,
-            out_fname=output_dir / "msa_depth.pdf",
-        )
-    else:
-        msa_plot_path = None
-
-    cif_paths: list[Path] = []
-    ranking_data: list[SampleRanking] = []
-
     for idx in range(num_diffn_samples):
-        ##
-        ## Compute ranking scores
-        ##
-
         _, valid_frames_mask = get_frames_and_mask(
             atom_pos[idx: idx + 1],
             inputs["token_asym_id"],
@@ -905,34 +886,8 @@ def run_folding_on_context(
             pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
         )
 
-        ranking_data.append(ranking_outputs)
-
-        ##
-        ## Write output files
-        ##
-
-        cif_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.cif")
         aggregate_score = ranking_outputs.aggregate_score.item()
-        print(f"Score={aggregate_score:.4f}, writing output to {cif_out_path}")
-
-        # use 0-100 scale for pLDDT in pdb outputs
-        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx: idx + 1]
-
-        save_to_cif(
-            coords=atom_pos[idx: idx + 1],
-            bfactors=scaled_plddt_scores_per_atom,
-            output_batch=inputs,
-            write_path=cif_out_path,
-            asym_entity_names={
-                i: c.entity_data.entity_name
-                for i, c in enumerate(feature_context.chains, start=1)
-            },
-        )
-        cif_paths.append(cif_out_path)
-
-        scores_out_path = output_dir.joinpath(f"scores.model_idx_{idx}.npz")
-
-        np.savez(scores_out_path, **get_scores(ranking_outputs))
+        print(f"Score={aggregate_score:.4f}")
 
     # return StructureCandidates(
     #     cif_paths=cif_paths,
